@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="org.apache.commons.configuration.Configuration"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.HBaseConfiguration"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.conf.Configuration"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.HBaseAdmin"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.HTableDescriptor"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.HColumnDescriptor"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Put"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.util.Bytes"/>
+<fullyQualifiedTypeName name="com.hbase.cn.hbase.api.HbaseCommon"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.HTable"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Get"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Delete"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Scan"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.filter.Filter"/>
+<fullyQualifiedTypeName name="com.hbase.cn.hbase.api.htable.HbaseQuery"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Result"/>
+<fullyQualifiedTypeName name="java.util.List"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.Cell"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.ResultScanner"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.ipc.RpcServer.Connection"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Connection"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.ConnectionFactory"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.TableName"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Table"/>
+<fullyQualifiedTypeName name="org.apache.hadoop.hbase.client.Admin"/>
+<fullyQualifiedTypeName name="com.hbase.cn.hbase.api.comm.HbaseCommon"/>
+<fullyQualifiedTypeName name="java.io.IOException"/>
+<fullyQualifiedTypeName name="java.util.StringTokenizer"/>
+</qualifiedTypeNameHistroy>

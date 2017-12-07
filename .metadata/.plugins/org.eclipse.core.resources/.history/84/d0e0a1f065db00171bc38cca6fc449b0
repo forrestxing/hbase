@@ -1,0 +1,29 @@
+package com.hbase.cn.hbase.mapreduce;
+
+public class ReadAndWriteHbase {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+
+	}
+    public static class MyMapper extends TableMapper<Text,IntWritable>{
+        
+        private static IntWritable one = new IntWritable(1);
+        private static Text word = new Text();
+        
+        @Override
+        protected void map(ImmutableBytesWritable key, Result value,
+                Context context)
+                throws IOException, InterruptedException {
+            //表里面只有一个列族，所以我就直接获取每一行的值
+            String words = Bytes.toString(value.list().get(0).getValue());
+            StringTokenizer st = new StringTokenizer(words); 
+            while (st.hasMoreTokens()) {
+                 String s = st.nextToken();
+                 word.set(s);
+                 context.write(word, one);
+            }
+        }
+    }
+
+}
