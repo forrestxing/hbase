@@ -1,0 +1,84 @@
+package com.hbase.cn.hbase.mapreduce;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.SimpleTotalOrderPartitioner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class ReduceForBulkload {
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		Configuration conf2 = new Configuration();
+        conf2.set("mapred.input.dir", args[2]);
+        conf2.set("mapred.output.dir", args[3]);
+        Job jobAfter = new Job(conf2);
+        jobAfter.setJarByClass(ReduceForBulkload.class);
+        jobAfter.setMapperClass(BuildIndexAfterMap.class);
+        jobAfter.setReducerClass(BuildIndexAfterReduce.class);
+        jobAfter.setNumReduceTasks(10);
+        jobAfter.setPartitionerClass(SimpleTotalOrderPartitioner.class);
+        jobAfter.setMapOutputKeyClass(ImmutableBytesWritable.class);
+        jobAfter.setMapOutputValueClass(Text.class);
+//        jobAfter.setSortComparatorClass(ByteArrayComparator.class);
+//        jobAfter.setGroupingComparatorClass(ByteArrayComparator.class);
+        FileOutputFormat.setOutputPath(jobAfter, new Path(args[3]));
+        jobAfter.setOutputFormatClass(HFileOutputFormat.class);
+        jobAfter.setInputFormatClass(TextInputFormat.class);
+        HTable table = new HTable(conf, conf.get("tableName"));
+        HFileOutputFormat.configureIncrementalLoad(jobAfter, table);
+        jobAfter.waitForCompletion(true);
+
+	}
+
+	public static class BuildIndexAfterMap extends
+			Mapper<LongWritable, Text, ImmutableBytesWritable, Text> {
+
+		@Override
+		public void map(LongWritable key, Text value, Context output)
+				throws IOException, InterruptedException {
+			String outKey = value.toString().split("\t")[0].trim();
+			String outValue = value.toString().split("\t")[1].trim();
+			if (!outKey.trim().isEmpty()) {
+				output.write(
+						new ImmutableBytesWritable(Bytes.toBytes(outKey
+								.hashCode())), new Text(outValue));
+			}
+		}
+	}
+
+	public static class BuildIndexAfterReduce
+			extends
+			Reducer<ImmutableBytesWritable, Text, ImmutableBytesWritable, KeyValue> {
+		@Override
+		public void reduce(ImmutableBytesWritable key, Iterable<Text> values,
+				Context output) throws IOException, InterruptedException {
+			StringBuilder outValue = new StringBuilder("");
+			Iterator<Text> iterator = values.iterator();
+			while (iterator.hasNext()) {
+				String v = iterator.next().toString();
+				outValue.append(v + ",");
+			}
+			KeyValue column = new KeyValue(key.get(),
+					Bytes.toBytes("searchIndex"), 
+					Bytes.toBytes("userId"),
+					Bytes.toBytes(outValue.toString()));
+			output.write(key, column);
+		}
+	}
+
+}

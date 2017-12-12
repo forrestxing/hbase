@@ -1,0 +1,132 @@
+package com.hbase.cn.hbase.mapreduce;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.SimpleTotalOrderPartitioner;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class ReduceForBulkload {
+
+	public static void main(String[] args) throws IOException,
+			ClassNotFoundException, InterruptedException {
+		Configuration conf = HBaseConfiguration.create();  
+        Job job = new Job(conf, "CONSTANT.jobName");  
+        job.setJarByClass(ReduceForBulkload.class);  
+  
+        job.setOutputKeyClass(ImmutableBytesWritable.class);  
+        //注意此处的Text.class要与map函数的输出key-value的value类型相对应  
+        job.setOutputValueClass(Text.class);  
+  
+        job.setMapperClass(LoadDataToHBaseMapper.class);  
+        job.setReducerClass(LoadDataToHBaseReducer.class);  
+        // job.setOutputFormatClass(org.apache.hadoop.hbase.mapreduce.HFileOutputFormat.class);  
+        job.setOutputFormatClass(HFileOutputFormat.class);  
+        // job.setNumReduceTasks(4);  
+        // job.setPartitionerClass(org.apache.hadoop.hbase.mapreduce.SimpleTotalOrderPartitioner.class);  
+  
+        Configuration fs_conf = new Configuration();  
+        FileSystem fs = FileSystem.get(fs_conf);  
+        String str_inPath = "CONSTANT.str_inPath";  
+        String str_outPath = "CONSTANT.str_outPath";  
+        //如果输出路径存在就先删掉，因为不允许输出路径事先存在  
+        Path outPath = new Path(str_outPath);  
+        if (fs.exists(outPath))  
+            fs.delete(outPath, true);  
+  
+        FileInputFormat.addInputPath(job, new Path(str_inPath));  
+        FileOutputFormat.setOutputPath(job, new Path(str_outPath));  
+  
+        System.exit(job.waitForCompletion(true) ? 0 : 1);  
+
+	}
+
+	public static class LoadDataToHBaseMapper extends
+			Mapper<LongWritable, Text, ImmutableBytesWritable, Text> {
+
+		public static int y, m, d;
+		Calendar cal = Calendar.getInstance();
+		// map的key用一个immutableBytesWritable类型的无意义的key，map的value是直接将原来的一行记录输出，
+		// map完成后会shuffle和sort，将key-value按照key排序，否则写不进hfile，hfile要求后写的key不能小于先写的key
+		private ImmutableBytesWritable immutableBytesWritable = new ImmutableBytesWritable();
+
+		protected void map(LongWritable key, Text value, Context context)
+				throws IOException, InterruptedException {
+			immutableBytesWritable.set(Bytes.toBytes(key.get()));
+			context.write(immutableBytesWritable, value);
+		}
+	}
+
+	public static class LoadDataToHBaseReducer
+			extends
+			Reducer<ImmutableBytesWritable, Text, ImmutableBytesWritable, KeyValue> {
+
+		public static int y, m, d;
+		Calendar cal = Calendar.getInstance();
+
+		protected void reduce(ImmutableBytesWritable key,
+				Iterable<Text> values, Context context) throws IOException,
+				InterruptedException {
+			String value = "";
+			while (values.iterator().hasNext()) {
+				value = values.iterator().next().toString();
+				if (value != null && !"".equals(value)) {
+					List<KeyValue> list = new ArrayList<KeyValue>();
+					list = createKeyValue(value.toString());
+					Iterator<KeyValue> it = list.iterator();
+					while (it.hasNext()) {
+						KeyValue kv = new KeyValue();
+						kv = it.next();
+						if (kv != null) {
+							context.write(key, kv);
+						}
+					}
+				}
+			}
+		}
+
+		private List<KeyValue> createKeyValue(String str) {
+			List<KeyValue> list = new ArrayList<KeyValue>();
+			String[] values = str.toString().split(",");
+			String[] qualifiersName = "CONSTANT.qualifiersName";
+			// long timeStamp = CONSTANT.timeStamp;
+			for (int i = 1; i < qualifiersName.length; i++) {
+				String rownum = values[0];
+				String family = "CONSTANT.familyName";
+				String qualifier = qualifiersName[i];
+				String value_str = values[i];
+				y = cal.get(Calendar.YEAR);
+				m = cal.get(Calendar.MONTH);
+				d = cal.get(Calendar.DATE);
+				String rowkey_str = Integer.toString(y) + Integer.toString(m)
+						+ Integer.toString(d) + rownum;
+				KeyValue kv = new KeyValue(Bytes.toBytes(rowkey_str),
+						Bytes.toBytes(family), Bytes.toBytes(qualifier),
+						System.currentTimeMillis(), Bytes.toBytes(value_str));
+				list.add(kv);
+			}
+			return list;
+		}
+
+	}
+
+}
